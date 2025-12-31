@@ -8,6 +8,7 @@ import (
 
 	"base/api/internal/database"
 	"base/api/internal/domain/health"
+	"base/api/internal/domain/ping"
 	"base/api/internal/middleware"
 )
 
@@ -33,20 +34,14 @@ func New(deps Dependencies) *chi.Mux {
 		health.RegisterRoutes(r, healthHandler)
 	})
 
-	// API routes (with auth)
-	r.Route("/api/v1", func(r chi.Router) {
-		// Add auth middleware for API routes
-		// r.Use(middleware.Auth(middleware.AuthConfig{
-		// 	SkipPaths: []string{"/api/v1/auth"},
-		// }))
-
-		// Mount domain routes here
-		// Example:
-		// usersService := users.NewService(deps.Postgres)
-		// usersHandler := users.NewHandler(usersService)
-		// r.Route("/users", func(r chi.Router) {
-		// 	users.RegisterRoutes(r, usersHandler)
-		// })
+	// API routes
+	r.Route("/api", func(r chi.Router) {
+		// Ping route
+		pingRepo := ping.NewRepository(deps.Postgres, deps.Dynamo)
+		pingHandler := ping.NewHandler(pingRepo)
+		r.Route("/ping", func(r chi.Router) {
+			ping.RegisterRoutes(r, pingHandler)
+		})
 	})
 
 	return r

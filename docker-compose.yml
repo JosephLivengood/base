@@ -13,6 +13,18 @@ services:
     depends_on:
       - api
 
+  goose:
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    container_name: base-goose
+    command: ["-dir", "/migrations", "postgres", "postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-base}?sslmode=disable", "up"]
+    volumes:
+      - ./database/migrations:/migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   api:
     build:
       context: ./api
@@ -35,8 +47,8 @@ services:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-local}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-local}
     depends_on:
-      postgres:
-        condition: service_healthy
+      goose:
+        condition: service_completed_successfully
       dynamodb:
         condition: service_started
 
