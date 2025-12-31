@@ -6,11 +6,13 @@ import (
 )
 
 type Config struct {
-	OAuth2Config *oauth2.Config
+	OAuth2Config  *oauth2.Config
+	SecureCookies bool
 }
 
-func NewConfig(clientID, clientSecret, redirectURL string) *Config {
+func NewConfig(clientID, clientSecret, redirectURL string, secureCookies bool) *Config {
 	return &Config{
+		SecureCookies: secureCookies,
 		OAuth2Config: &oauth2.Config{
 			ClientID:     clientID,
 			ClientSecret: clientSecret,

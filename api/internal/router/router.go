@@ -30,6 +30,7 @@ type Dependencies struct {
 	Metrics       observability.Metrics
 	SessionSecret string
 	GoogleConfig  GoogleOAuthConfig
+	Environment   string
 }
 
 func New(deps Dependencies) *chi.Mux {
@@ -56,10 +57,12 @@ func New(deps Dependencies) *chi.Mux {
 	r.Route("/api", func(r chi.Router) {
 		// Auth routes
 		userRepo := user.NewRepository(deps.Postgres)
+		secureCookies := deps.Environment != "development"
 		authConfig := auth.NewConfig(
 			deps.GoogleConfig.ClientID,
 			deps.GoogleConfig.ClientSecret,
 			deps.GoogleConfig.RedirectURL,
+			secureCookies,
 		)
 		authHandler := auth.NewHandler(authConfig, userRepo, sessionStore)
 		r.Route("/auth", func(r chi.Router) {

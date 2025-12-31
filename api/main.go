@@ -108,6 +108,7 @@ func run(logger *slog.Logger) error {
 			ClientSecret: cfg.GoogleClientSecret,
 			RedirectURL:  cfg.GoogleRedirectURL,
 		},
+		Environment: cfg.Environment,
 	})
 
 	// Create server
