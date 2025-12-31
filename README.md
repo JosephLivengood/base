@@ -21,39 +21,52 @@ make tf-apply     # Create DynamoDB tables
 ├── api/                    # Go backend (Chi router, sqlx)
 │   ├── internal/
 │   │   ├── domain/         # Feature modules (add new features here)
+│   │   │   ├── auth/       # Google OAuth login/callback
+│   │   │   ├── user/       # User persistence
 │   │   │   ├── health/     # Health check endpoints
-│   │   │   └── ping/       # Example: handler, repository, models, routes
-│   │   ├── database/       # DB clients (postgres.go, dynamo.go)
-│   │   ├── middleware/     # HTTP middleware
+│   │   │   └── ping/       # Example: dual-DB writes (Postgres + DynamoDB)
+│   │   ├── database/       # DB clients (postgres.go, dynamo.go, redis.go)
+│   │   ├── session/        # Redis session management
+│   │   ├── middleware/     # HTTP middleware (logging, auth, CORS)
+│   │   ├── observability/  # CloudWatch metrics
 │   │   └── router/         # Route mounting
 │   └── pkg/response/       # Shared utilities
-├── web/                    # Vite + React + Tailwind frontend
+├── web/                    # Vite + React + TypeScript + Tailwind
+│   └── src/
+│       ├── components/     # Auth, layout, protected routes
+│       ├── hooks/          # useAuth, useHealthCheck
+│       └── router/         # React Router setup
 ├── database/
 │   └── migrations/         # Goose SQL migrations (PostgreSQL)
-├── infra/                  # Terraform (DynamoDB tables)
+├── infra/                  # Terraform (DynamoDB, CloudWatch)
+│   └── environments/       # local.tfvars, prod.tfvars
 └── docker-compose.yml
 ```
 
-## Database Patterns
+## Stack
 
-| Database   | Schema Management | Location |
-|------------|-------------------|----------|
-| PostgreSQL | Goose migrations  | `database/migrations/*.sql` |
-| DynamoDB   | Terraform         | `infra/dynamodb.tf` |
+| Component  | Purpose           | Management |
+|------------|-------------------|------------|
+| PostgreSQL | Users, relational data | Goose migrations (`database/migrations/`) |
+| DynamoDB   | Time-series, NoSQL | Terraform (`infra/dynamodb.tf`) |
+| Redis      | Sessions          | Docker (no schema) |
 
-### PostgreSQL: Add a migration
-```bash
-make migrate-new name=create_users_table
-# Edit database/migrations/XXXXX_create_users_table.sql
-make migrate
+## Authentication
+
+Google OAuth with Redis-backed sessions. Protected routes redirect to `/login`.
+
+```
+POST /auth/google/login     # Initiates OAuth flow
+GET  /auth/google/callback  # OAuth callback, creates session
+GET  /auth/me               # Current user (requires session)
+POST /auth/logout           # Clears session
 ```
 
-### DynamoDB: Add a table
-Edit `infra/dynamodb.tf`, then:
-```bash
-make tf-plan    # Review
-make tf-apply   # Apply
-```
+## Schema Changes
+
+**PostgreSQL:** `make migrate-new name=<name>` then edit the generated file and `make migrate`
+
+**DynamoDB:** Edit `infra/dynamodb.tf` then `make tf-plan && make tf-apply`
 
 ## Adding a New API Domain
 
