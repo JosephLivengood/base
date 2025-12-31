@@ -87,12 +87,27 @@ func run(logger *slog.Logger) error {
 	}
 	logger.Info("connected to dynamodb")
 
+	// Initialize Redis
+	redisDB, err := database.NewRedis(cfg.RedisHost, cfg.RedisPort)
+	if err != nil {
+		return fmt.Errorf("failed to connect to redis: %w", err)
+	}
+	defer redisDB.Close()
+	logger.Info("connected to redis")
+
 	// Setup router
 	r := router.New(router.Dependencies{
-		Logger:   logger,
-		Postgres: postgres,
-		Dynamo:   dynamo,
-		Metrics:  metrics,
+		Logger:        logger,
+		Postgres:      postgres,
+		Dynamo:        dynamo,
+		Redis:         redisDB,
+		Metrics:       metrics,
+		SessionSecret: cfg.SessionSecret,
+		GoogleConfig: router.GoogleOAuthConfig{
+			ClientID:     cfg.GoogleClientID,
+			ClientSecret: cfg.GoogleClientSecret,
+			RedirectURL:  cfg.GoogleRedirectURL,
+		},
 	})
 
 	// Create server

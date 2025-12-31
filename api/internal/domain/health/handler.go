@@ -12,12 +12,14 @@ import (
 type Handler struct {
 	postgres *database.PostgresDB
 	dynamo   *database.DynamoDB
+	redis    *database.RedisDB
 }
 
-func NewHandler(postgres *database.PostgresDB, dynamo *database.DynamoDB) *Handler {
+func NewHandler(postgres *database.PostgresDB, dynamo *database.DynamoDB, redis *database.RedisDB) *Handler {
 	return &Handler{
 		postgres: postgres,
 		dynamo:   dynamo,
+		redis:    redis,
 	}
 }
 
@@ -54,6 +56,16 @@ func (h *Handler) Ready(w http.ResponseWriter, r *http.Request) {
 			allHealthy = false
 		} else {
 			services["dynamodb"] = "healthy"
+		}
+	}
+
+	// Check Redis
+	if h.redis != nil {
+		if err := h.redis.Health(ctx); err != nil {
+			services["redis"] = "unhealthy: " + err.Error()
+			allHealthy = false
+		} else {
+			services["redis"] = "healthy"
 		}
 	}
 

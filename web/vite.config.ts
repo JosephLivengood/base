@@ -15,6 +15,11 @@ export default defineConfig({
         target: 'http://api:8080',
         changeOrigin: true,
       },
+      '/auth': {
+        target: 'http://api:8080',
+        changeOrigin: true,
+        rewrite: (path) => `/api${path}`,
+      },
     },
   },
 })

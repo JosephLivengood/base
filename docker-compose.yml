@@ -46,11 +46,19 @@ services:
       DYNAMO_REGION: ${DYNAMO_REGION:-us-east-1}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-local}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-local}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URL: ${GOOGLE_REDIRECT_URL:-http://localhost:5173/auth/google/callback}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SESSION_SECRET: ${SESSION_SECRET:-dev-secret-change-in-production}
     depends_on:
       goose:
         condition: service_completed_successfully
       dynamodb:
         condition: service_started
+      redis:
+        condition: service_healthy
 
   postgres:
     image: postgres:16-alpine
@@ -82,6 +90,21 @@ services:
       - dynamodb_data:/data
     working_dir: /home/dynamodblocal
 
+  redis:
+    image: redis:7-alpine
+    container_name: base-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:
   dynamodb_data:
+  redis_data:

@@ -3,56 +3,62 @@ package middleware
 import (
 	"context"
 	"net/http"
-	"strings"
 
+	"base/api/internal/domain/user"
+	"base/api/internal/session"
 	"base/api/pkg/response"
 )
 
 type contextKey string
 
-const UserContextKey contextKey = "user"
+const (
+	UserContextKey    contextKey = "user"
+	SessionContextKey contextKey = "session"
+)
 
-type AuthConfig struct {
-	// Add your auth configuration here (e.g., JWT secret, auth provider)
-	SkipPaths []string
-}
-
-// Auth middleware - placeholder for your auth implementation
-func Auth(cfg AuthConfig) func(http.Handler) http.Handler {
+// RequireAuth is middleware that requires a valid session
+func RequireAuth(sessionStore *session.Store, userRepo *user.Repository) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Skip auth for certain paths
-			for _, path := range cfg.SkipPaths {
-				if strings.HasPrefix(r.URL.Path, path) {
-					next.ServeHTTP(w, r)
-					return
-				}
-			}
-
-			// Get token from Authorization header
-			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" {
-				response.Unauthorized(w, "missing authorization header")
+			cookie, err := r.Cookie("session_id")
+			if err != nil {
+				response.Unauthorized(w, "authentication required")
 				return
 			}
 
-			// Extract Bearer token
-			parts := strings.Split(authHeader, " ")
-			if len(parts) != 2 || parts[0] != "Bearer" {
-				response.Unauthorized(w, "invalid authorization header format")
+			sess, err := sessionStore.Get(r.Context(), cookie.Value)
+			if err != nil {
+				response.Unauthorized(w, "invalid or expired session")
 				return
 			}
 
-			token := parts[1]
+			usr, err := userRepo.GetByID(r.Context(), sess.UserID)
+			if err != nil {
+				response.Unauthorized(w, "user not found")
+				return
+			}
 
-			// TODO: Validate token and extract user info
-			// This is a placeholder - implement your actual auth logic here
-			_ = token
-
-			// Add user to context (replace with actual user data)
-			ctx := context.WithValue(r.Context(), UserContextKey, nil)
+			// Add session and user to context
+			ctx := context.WithValue(r.Context(), SessionContextKey, sess)
+			ctx = context.WithValue(ctx, UserContextKey, usr)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+// GetUserFromContext retrieves the user from the request context
+func GetUserFromContext(ctx context.Context) *user.User {
+	if usr, ok := ctx.Value(UserContextKey).(*user.User); ok {
+		return usr
+	}
+	return nil
+}
+
+// GetSessionFromContext retrieves the session from the request context
+func GetSessionFromContext(ctx context.Context) *session.Session {
+	if sess, ok := ctx.Value(SessionContextKey).(*session.Session); ok {
+		return sess
+	}
+	return nil
 }

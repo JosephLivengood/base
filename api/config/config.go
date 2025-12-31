@@ -25,6 +25,18 @@ type Config struct {
 	DynamoRegion   string
 	AWSAccessKey   string
 	AWSSecretKey   string
+
+	// Redis
+	RedisHost string
+	RedisPort string
+
+	// Session
+	SessionSecret string
+
+	// Google OAuth
+	GoogleClientID     string
+	GoogleClientSecret string
+	GoogleRedirectURL  string
 }
 
 func Load() (*Config, error) {
@@ -46,6 +58,15 @@ func Load() (*Config, error) {
 		DynamoRegion:   getEnv("DYNAMO_REGION", "us-east-1"),
 		AWSAccessKey:   getEnv("AWS_ACCESS_KEY_ID", "local"),
 		AWSSecretKey:   getEnv("AWS_SECRET_ACCESS_KEY", "local"),
+
+		RedisHost: getEnv("REDIS_HOST", "localhost"),
+		RedisPort: getEnv("REDIS_PORT", "6379"),
+
+		SessionSecret: getEnv("SESSION_SECRET", "dev-secret-change-in-production"),
+
+		GoogleClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
+		GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
+		GoogleRedirectURL:  getEnv("GOOGLE_REDIRECT_URL", "http://localhost:5173/auth/google/callback"),
 	}
 
 	return cfg, nil
