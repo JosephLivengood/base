@@ -4,6 +4,8 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
 type wrappedWriter struct {
@@ -25,11 +27,15 @@ func Logging(logger *slog.Logger) func(http.Handler) http.Handler {
 
 			next.ServeHTTP(wrapped, r)
 
+			// Get request ID from chi middleware
+			requestID := chimiddleware.GetReqID(r.Context())
+
 			logger.Info("request",
+				"request_id", requestID,
 				"method", r.Method,
 				"path", r.URL.Path,
 				"status", wrapped.statusCode,
-				"duration", time.Since(start).String(),
+				"duration_ms", time.Since(start).Milliseconds(),
 				"ip", r.RemoteAddr,
 			)
 		})

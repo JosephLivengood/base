@@ -10,12 +10,14 @@ import (
 	"base/api/internal/domain/health"
 	"base/api/internal/domain/ping"
 	"base/api/internal/middleware"
+	"base/api/internal/observability"
 )
 
 type Dependencies struct {
 	Logger   *slog.Logger
 	Postgres *database.PostgresDB
 	Dynamo   *database.DynamoDB
+	Metrics  observability.Metrics
 }
 
 func New(deps Dependencies) *chi.Mux {
@@ -24,9 +26,10 @@ func New(deps Dependencies) *chi.Mux {
 	// Global middleware
 	r.Use(chimiddleware.RequestID)
 	r.Use(chimiddleware.RealIP)
+	r.Use(middleware.Recovery(deps.Logger))
 	r.Use(middleware.Logging(deps.Logger))
+	r.Use(middleware.Metrics(deps.Metrics))
 	r.Use(middleware.CORS(middleware.DefaultCORSConfig()))
-	r.Use(chimiddleware.Recoverer)
 
 	// Health routes (no auth required)
 	healthHandler := health.NewHandler(deps.Postgres, deps.Dynamo)

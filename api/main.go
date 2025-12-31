@@ -14,20 +14,33 @@ import (
 
 	"base/api/config"
 	"base/api/internal/database"
+	"base/api/internal/observability"
 	"base/api/internal/router"
 )
 
 func main() {
+	env := os.Getenv("ENVIRONMENT")
+	isDev := env == "development" || env == ""
+
 	// Use DEBUG level in development to see DB query logs
 	level := slog.LevelInfo
-	if os.Getenv("ENVIRONMENT") == "development" || os.Getenv("ENVIRONMENT") == "" {
+	if isDev {
 		level = slog.LevelDebug
 	}
 
-	logger := slog.New(tint.NewHandler(os.Stdout, &tint.Options{
-		Level:      level,
-		TimeFormat: time.Kitchen,
-	}))
+	// Use colored output for development, JSON for production (CloudWatch)
+	var handler slog.Handler
+	if isDev {
+		handler = tint.NewHandler(os.Stdout, &tint.Options{
+			Level:      level,
+			TimeFormat: time.Kitchen,
+		})
+	} else {
+		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: level,
+		})
+	}
+	logger := slog.New(handler)
 
 	if err := run(logger); err != nil {
 		logger.Error("application error", "error", err)
@@ -48,6 +61,9 @@ func run(logger *slog.Logger) error {
 	)
 
 	debug := cfg.Environment == "development"
+
+	// Initialize metrics client (no-op in development, CloudWatch in production)
+	metrics := observability.NewMetrics(logger, cfg.Environment)
 
 	// Initialize PostgreSQL
 	postgres, err := database.NewPostgres(cfg.PostgresDSN(), logger, debug)
@@ -76,6 +92,7 @@ func run(logger *slog.Logger) error {
 		Logger:   logger,
 		Postgres: postgres,
 		Dynamo:   dynamo,
+		Metrics:  metrics,
 	})
 
 	// Create server

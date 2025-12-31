@@ -28,3 +28,21 @@ variable "dynamodb_endpoint" {
   type        = string
   default     = null
 }
+
+variable "environment" {
+  description = "Environment name (development, staging, production)"
+  type        = string
+  default     = "development"
+}
+
+variable "alert_email" {
+  description = "Email address for CloudWatch alarm notifications"
+  type        = string
+  default     = ""
+}
+
+variable "cloudwatch_namespace" {
+  description = "CloudWatch metrics namespace"
+  type        = string
+  default     = "App/API"
+}
