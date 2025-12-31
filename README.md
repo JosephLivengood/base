@@ -10,6 +10,7 @@ Prerequisites: Docker
 make dev
 ```
 
-This starts PostgreSQL, DynamoDB Local, and the API.
+This starts PostgreSQL, DynamoDB Local, the API, and the frontend.
 
-API runs at `http://localhost:8080`
+- Frontend: http://localhost:5173
+- API: http://localhost:8080
