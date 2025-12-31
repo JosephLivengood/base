@@ -10,14 +10,23 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/lmittmann/tint"
+
 	"base/api/config"
 	"base/api/internal/database"
 	"base/api/internal/router"
 )
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
+	// Use DEBUG level in development to see DB query logs
+	level := slog.LevelInfo
+	if os.Getenv("ENVIRONMENT") == "development" || os.Getenv("ENVIRONMENT") == "" {
+		level = slog.LevelDebug
+	}
+
+	logger := slog.New(tint.NewHandler(os.Stdout, &tint.Options{
+		Level:      level,
+		TimeFormat: time.Kitchen,
 	}))
 
 	if err := run(logger); err != nil {
@@ -38,8 +47,10 @@ func run(logger *slog.Logger) error {
 		"environment", cfg.Environment,
 	)
 
+	debug := cfg.Environment == "development"
+
 	// Initialize PostgreSQL
-	postgres, err := database.NewPostgres(cfg.PostgresDSN())
+	postgres, err := database.NewPostgres(cfg.PostgresDSN(), logger, debug)
 	if err != nil {
 		return fmt.Errorf("failed to connect to postgres: %w", err)
 	}
@@ -52,6 +63,8 @@ func run(logger *slog.Logger) error {
 		Region:    cfg.DynamoRegion,
 		AccessKey: cfg.AWSAccessKey,
 		SecretKey: cfg.AWSSecretKey,
+		Logger:    logger,
+		Debug:     debug,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to connect to dynamodb: %w", err)
