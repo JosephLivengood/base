@@ -1,6 +1,6 @@
 # Base
 
-SaaS starter template.
+Application starter template.
 
 ## Quickstart
 

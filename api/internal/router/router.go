@@ -9,6 +9,7 @@ import (
 	"base/api/internal/database"
 	"base/api/internal/domain/auth"
 	"base/api/internal/domain/health"
+	"base/api/internal/domain/organization"
 	"base/api/internal/domain/ping"
 	"base/api/internal/domain/user"
 	"base/api/internal/middleware"
@@ -55,8 +56,11 @@ func New(deps Dependencies) *chi.Mux {
 
 	// API routes
 	r.Route("/api", func(r chi.Router) {
-		// Auth routes
+		// Repositories
 		userRepo := user.NewRepository(deps.Postgres)
+		orgRepo := organization.NewRepository(deps.Postgres)
+
+		// Auth routes
 		secureCookies := deps.Environment != "development"
 		authConfig := auth.NewConfig(
 			deps.GoogleConfig.ClientID,
@@ -64,7 +68,7 @@ func New(deps Dependencies) *chi.Mux {
 			deps.GoogleConfig.RedirectURL,
 			secureCookies,
 		)
-		authHandler := auth.NewHandler(authConfig, userRepo, sessionStore)
+		authHandler := auth.NewHandler(authConfig, userRepo, orgRepo, sessionStore)
 		r.Route("/auth", func(r chi.Router) {
 			auth.RegisterRoutes(r, authHandler)
 		})
@@ -74,6 +78,22 @@ func New(deps Dependencies) *chi.Mux {
 		pingHandler := ping.NewHandler(pingRepo)
 		r.Route("/ping", func(r chi.Router) {
 			ping.RegisterRoutes(r, pingHandler)
+		})
+
+		// Auth middleware for protected routes
+		authMiddleware := middleware.RequireAuth(sessionStore, userRepo)
+
+		// Organization routes (protected)
+		orgHandler := organization.NewHandler(orgRepo, userRepo, sessionStore)
+		r.Route("/organizations", func(r chi.Router) {
+			r.Use(authMiddleware)
+			organization.RegisterRoutes(r, orgHandler)
+		})
+
+		// User invitations routes (protected)
+		r.Route("/invitations", func(r chi.Router) {
+			r.Use(authMiddleware)
+			organization.RegisterInvitationRoutes(r, orgHandler)
 		})
 	})
 

@@ -21,10 +21,11 @@ const (
 var ErrSessionNotFound = errors.New("session not found")
 
 type Session struct {
-	ID        string    `json:"id"`
-	UserID    string    `json:"user_id"`
-	CreatedAt time.Time `json:"created_at"`
-	ExpiresAt time.Time `json:"expires_at"`
+	ID          string    `json:"id"`
+	UserID      string    `json:"user_id"`
+	ActiveOrgID string    `json:"active_org_id,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	ExpiresAt   time.Time `json:"expires_at"`
 }
 
 type Store struct {
@@ -113,6 +114,27 @@ func (s *Store) Refresh(ctx context.Context, sessionID string) (*Session, error)
 	}
 
 	return session, nil
+}
+
+func (s *Store) SetActiveOrg(ctx context.Context, sessionID, orgID string) error {
+	session, err := s.Get(ctx, sessionID)
+	if err != nil {
+		return err
+	}
+
+	session.ActiveOrgID = orgID
+
+	data, err := json.Marshal(session)
+	if err != nil {
+		return err
+	}
+
+	key := sessionPrefix + sessionID
+	ttl := time.Until(session.ExpiresAt)
+	if ttl <= 0 {
+		ttl = sessionTTL
+	}
+	return s.redis.Client.Set(ctx, key, data, ttl).Err()
 }
 
 func generateSessionID() (string, error) {

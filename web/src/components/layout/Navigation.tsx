@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { GoogleLoginButton } from '../auth/GoogleLoginButton'
 import { UserAvatar } from '../auth/UserAvatar'
+import { OrgSwitcher } from '../organization/OrgSwitcher'
 
 export function Navigation() {
   const { user, isLoading } = useAuth()
@@ -13,6 +14,7 @@ export function Navigation() {
           <Link to="/" className="text-xl font-bold text-white">
             Base
           </Link>
+          {user && <OrgSwitcher />}
           <div className="flex items-center gap-4">
             <Link
               to="/"

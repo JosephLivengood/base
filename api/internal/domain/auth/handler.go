@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"time"
 
+	"base/api/internal/domain/organization"
 	"base/api/internal/domain/user"
 	"base/api/internal/session"
 	"base/api/pkg/response"
@@ -21,13 +22,15 @@ const sessionCookieName = "session_id"
 type Handler struct {
 	config       *Config
 	userRepo     *user.Repository
+	orgRepo      *organization.Repository
 	sessionStore *session.Store
 }
 
-func NewHandler(config *Config, userRepo *user.Repository, sessionStore *session.Store) *Handler {
+func NewHandler(config *Config, userRepo *user.Repository, orgRepo *organization.Repository, sessionStore *session.Store) *Handler {
 	return &Handler{
 		config:       config,
 		userRepo:     userRepo,
+		orgRepo:      orgRepo,
 		sessionStore: sessionStore,
 	}
 }
@@ -96,6 +99,22 @@ func (h *Handler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Failed to save user: "+err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Check if user has any organizations, create default "Personal" org if not
+	orgs, err := h.orgRepo.GetUserOrganizations(ctx, dbUser.ID)
+	if err != nil {
+		http.Error(w, "Failed to check organizations: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if len(orgs) == 0 {
+		slug := organization.GenerateSlug("personal", dbUser.ID)
+		_, err = h.orgRepo.CreateWithOwner(ctx, "Personal", slug, dbUser.ID)
+		if err != nil {
+			http.Error(w, "Failed to create default organization: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	// Create session with user's UUID
