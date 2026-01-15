@@ -11,6 +11,8 @@ import (
 	"base/api/internal/domain/health"
 	"base/api/internal/domain/organization"
 	"base/api/internal/domain/ping"
+	"base/api/internal/domain/project"
+	"base/api/internal/domain/subscription"
 	"base/api/internal/domain/user"
 	"base/api/internal/middleware"
 	"base/api/internal/observability"
@@ -85,9 +87,22 @@ func New(deps Dependencies) *chi.Mux {
 
 		// Organization routes (protected)
 		orgHandler := organization.NewHandler(orgRepo, userRepo, sessionStore)
+		projectRepo := project.NewRepository(deps.Postgres)
+		projectHandler := project.NewHandler(projectRepo, orgRepo)
+		subscriptionRepo := subscription.NewRepository(deps.Postgres)
+		subscriptionHandler := subscription.NewHandler(subscriptionRepo, orgRepo)
+
 		r.Route("/organizations", func(r chi.Router) {
 			r.Use(authMiddleware)
 			organization.RegisterRoutes(r, orgHandler)
+
+			// Nested routes under /organizations/{orgID}
+			r.Route("/{orgID}/projects", func(r chi.Router) {
+				project.RegisterRoutes(r, projectHandler)
+			})
+			r.Route("/{orgID}/subscription", func(r chi.Router) {
+				subscription.RegisterRoutes(r, subscriptionHandler)
+			})
 		})
 
 		// User invitations routes (protected)
