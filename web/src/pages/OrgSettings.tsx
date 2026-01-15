@@ -1,18 +1,23 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useOrganization } from '../hooks/useOrganization'
 import { MemberList } from '../components/organization/MemberList'
 import { InviteForm } from '../components/organization/InviteForm'
+import { BillingTab } from '../components/organization/BillingTab'
 import { OrganizationWithRole } from '../types/organization'
 
-type Tab = 'general' | 'members' | 'invitations'
+type Tab = 'general' | 'members' | 'invitations' | 'billing'
 
 export function OrgSettings() {
   const { orgId } = useParams<{ orgId: string }>()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { organizations, refetch } = useOrganization()
   const [org, setOrg] = useState<OrganizationWithRole | null>(null)
-  const [activeTab, setActiveTab] = useState<Tab>('general')
+
+  // Get initial tab from URL params or default to 'general'
+  const tabParam = searchParams.get('tab') as Tab | null
+  const [activeTab, setActiveTab] = useState<Tab>(tabParam && ['general', 'members', 'invitations', 'billing'].includes(tabParam) ? tabParam : 'general')
   const [name, setName] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -118,7 +123,20 @@ export function OrgSettings() {
     { id: 'general', label: 'General', show: true },
     { id: 'members', label: 'Members', show: true },
     { id: 'invitations', label: 'Invitations', show: canManageMembers },
+    { id: 'billing', label: 'Billing', show: canManageMembers },
   ]
+
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab)
+    // Update URL params
+    const newParams = new URLSearchParams(searchParams)
+    if (tab === 'general') {
+      newParams.delete('tab')
+    } else {
+      newParams.set('tab', tab)
+    }
+    setSearchParams(newParams, { replace: true })
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -132,7 +150,7 @@ export function OrgSettings() {
           {tabs.filter((t) => t.show).map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
               className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-400'
@@ -232,6 +250,10 @@ export function OrgSettings() {
 
       {activeTab === 'invitations' && canManageMembers && (
         <InviteForm orgId={org.id} />
+      )}
+
+      {activeTab === 'billing' && canManageMembers && (
+        <BillingTab orgId={org.id} />
       )}
     </div>
   )

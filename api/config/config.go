@@ -37,6 +37,11 @@ type Config struct {
 	GoogleClientID     string
 	GoogleClientSecret string
 	GoogleRedirectURL  string
+
+	// Stripe
+	StripeSecretKey      string
+	StripePublishableKey string
+	StripeWebhookSecret  string
 }
 
 func Load() (*Config, error) {
@@ -67,6 +72,10 @@ func Load() (*Config, error) {
 		GoogleClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
 		GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
 		GoogleRedirectURL:  getEnv("GOOGLE_REDIRECT_URL", "http://localhost:5173/auth/google/callback"),
+
+		StripeSecretKey:      getEnv("STRIPE_SECRET_KEY", ""),
+		StripePublishableKey: getEnv("STRIPE_PUBLISHABLE_KEY", ""),
+		StripeWebhookSecret:  getEnv("STRIPE_WEBHOOK_SECRET", ""),
 	}
 
 	return cfg, nil

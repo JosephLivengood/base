@@ -108,6 +108,11 @@ func run(logger *slog.Logger) error {
 			ClientSecret: cfg.GoogleClientSecret,
 			RedirectURL:  cfg.GoogleRedirectURL,
 		},
+		StripeConfig: router.StripeConfig{
+			SecretKey:      cfg.StripeSecretKey,
+			PublishableKey: cfg.StripePublishableKey,
+			WebhookSecret:  cfg.StripeWebhookSecret,
+		},
 		Environment: cfg.Environment,
 	})
 

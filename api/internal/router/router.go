@@ -25,6 +25,12 @@ type GoogleOAuthConfig struct {
 	RedirectURL  string
 }
 
+type StripeConfig struct {
+	SecretKey      string
+	PublishableKey string
+	WebhookSecret  string
+}
+
 type Dependencies struct {
 	Logger        *slog.Logger
 	Postgres      *database.PostgresDB
@@ -33,6 +39,7 @@ type Dependencies struct {
 	Metrics       observability.Metrics
 	SessionSecret string
 	GoogleConfig  GoogleOAuthConfig
+	StripeConfig  StripeConfig
 	Environment   string
 }
 
@@ -85,12 +92,19 @@ func New(deps Dependencies) *chi.Mux {
 		// Auth middleware for protected routes
 		authMiddleware := middleware.RequireAuth(sessionStore, userRepo)
 
+		// Initialize Stripe service
+		stripeService := subscription.NewStripeService(
+			deps.StripeConfig.SecretKey,
+			deps.StripeConfig.WebhookSecret,
+			deps.Environment,
+		)
+
 		// Organization routes (protected)
 		orgHandler := organization.NewHandler(orgRepo, userRepo, sessionStore)
 		projectRepo := project.NewRepository(deps.Postgres)
 		projectHandler := project.NewHandler(projectRepo, orgRepo)
 		subscriptionRepo := subscription.NewRepository(deps.Postgres)
-		subscriptionHandler := subscription.NewHandler(subscriptionRepo, orgRepo)
+		subscriptionHandler := subscription.NewHandler(subscriptionRepo, orgRepo, stripeService, deps.Environment)
 
 		r.Route("/organizations", func(r chi.Router) {
 			r.Use(authMiddleware)
@@ -109,6 +123,11 @@ func New(deps Dependencies) *chi.Mux {
 		r.Route("/invitations", func(r chi.Router) {
 			r.Use(authMiddleware)
 			organization.RegisterInvitationRoutes(r, orgHandler)
+		})
+
+		// Stripe webhook route (no auth required)
+		r.Route("/stripe", func(r chi.Router) {
+			subscription.RegisterWebhookRoute(r, subscriptionHandler)
 		})
 	})
 
