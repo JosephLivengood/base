@@ -49,6 +49,9 @@ The API uses a domain-driven structure where each feature is a self-contained mo
 **Existing domains**:
 - `auth` - Google OAuth login/logout, session cookie management
 - `user` - User persistence (Postgres)
+- `organization` - Multi-tenant organizations, members, invitations
+- `project` - Projects belonging to organizations (soft delete)
+- `subscription` - Stripe subscriptions and billing
 - `health` - Health check endpoints (`/health/check`, `/health/ready`)
 - `ping` - Example domain for testing DB operations
 
@@ -58,7 +61,7 @@ The API uses a domain-driven structure where each feature is a self-contained mo
 
 **Key packages**:
 - `api/internal/database/` - Database clients (`postgres.go`, `dynamo.go`, `redis.go`)
-- `api/internal/session/` - Redis-backed session store
+- `api/internal/session/` - Redis-backed session store (includes `ActiveOrgID`)
 - `api/internal/middleware/` - HTTP middleware (logging, CORS, auth, recovery, metrics)
 - `api/pkg/response/` - JSON response helpers (`OK`, `Unauthorized`, `InternalError`, `JSON`)
 
@@ -67,6 +70,20 @@ The API uses a domain-driven structure where each feature is a self-contained mo
 - Session stored in Redis, session ID in HTTP-only cookie
 - Use `middleware.RequireAuth(sessionStore, userRepo)` to protect routes
 - Access user/session in handlers via `middleware.GetUserFromContext(ctx)`
+- New users automatically get a "Personal" organization on signup
+
+**Organizations**:
+- Multi-tenant system: users belong to organizations with roles (`owner`, `admin`, `member`)
+- Organization context tracked in session via `ActiveOrgID`
+- Invitation system for adding members by email
+- Routes nested under `/api/organizations/{orgID}/...`
+
+**Subscriptions (Stripe)**:
+- Tiers: `free`, `personal_plus`
+- Stripe Checkout for payment, Billing Portal for management
+- Local dev uses optimistic confirm endpoint (no webhooks needed)
+- Production uses Stripe webhooks at `/api/stripe/webhook`
+- Environment: `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`
 
 ### Frontend (Vite + React + Tailwind)
 
@@ -75,10 +92,17 @@ React app with React Router in `web/`. API calls proxy through Vite dev server.
 **Key structure**:
 - `web/src/router/` - Route definitions with `ProtectedRoute` wrapper
 - `web/src/hooks/useAuth.tsx` - Auth context provider and `useAuth()` hook
-- `web/src/components/auth/` - Login button, user avatar, protected route
-- `web/src/pages/` - Page components (Dashboard, Login, Profile, NotFound)
+- `web/src/hooks/useOrganization.tsx` - Organization context with `currentOrg`, `switchOrg`
+- `web/src/hooks/useMembers.ts` - Member management hook
+- `web/src/hooks/useInvitations.ts` - Invitation management hooks
+- `web/src/hooks/useSubscription.ts` - Subscription and billing hook
+- `web/src/types/` - TypeScript types for organization, subscription, etc.
+- `web/src/components/organization/` - OrgSwitcher, MemberList, InviteForm, BillingTab
+- `web/src/pages/` - Page components (Dashboard, Login, Profile, Organizations, OrgSettings)
 
 **Auth flow**: `AuthProvider` fetches `/auth/me` on load. Use `useAuth()` for `user`, `isAuthenticated`, `isLoading`.
+
+**Organization flow**: `OrganizationProvider` wraps the app. Use `useOrganization()` for `currentOrg`, `organizations`, `switchOrg`.
 
 ### Database Schema
 
@@ -87,3 +111,11 @@ React app with React Router in `web/`. API calls proxy through Vite dev server.
 | PostgreSQL | Goose migrations  | `database/migrations/*.sql` |
 | DynamoDB   | Terraform         | `infra/dynamodb.tf` |
 | Redis      | N/A (session store) | — |
+
+**PostgreSQL Tables**:
+- `users` - User accounts (Google OAuth)
+- `organizations` - Multi-tenant organizations
+- `organization_members` - User-org membership with roles
+- `organization_invitations` - Pending invitations
+- `projects` - Projects (soft delete via `deleted_at`)
+- `subscriptions` - Stripe subscriptions with tier, status, Stripe IDs
