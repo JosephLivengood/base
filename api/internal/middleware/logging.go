@@ -6,6 +6,7 @@ import (
 	"time"
 
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type wrappedWriter struct {
@@ -30,8 +31,20 @@ func Logging(logger *slog.Logger) func(http.Handler) http.Handler {
 			// Get request ID from chi middleware
 			requestID := chimiddleware.GetReqID(r.Context())
 
+			// Extract trace ID from OpenTelemetry span context for log correlation
+			var traceID, spanID string
+			spanCtx := trace.SpanContextFromContext(r.Context())
+			if spanCtx.HasTraceID() {
+				traceID = spanCtx.TraceID().String()
+			}
+			if spanCtx.HasSpanID() {
+				spanID = spanCtx.SpanID().String()
+			}
+
 			logger.Info("request",
 				"request_id", requestID,
+				"trace_id", traceID,
+				"span_id", spanID,
 				"method", r.Method,
 				"path", r.URL.Path,
 				"status", wrapped.statusCode,

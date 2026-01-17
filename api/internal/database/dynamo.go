@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/smithy-go/middleware"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/aws/aws-sdk-go-v2/otelaws"
 )
 
 type DynamoDB struct {
@@ -37,6 +38,9 @@ func NewDynamo(cfg DynamoConfig) (*DynamoDB, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Add OpenTelemetry instrumentation to AWS SDK
+	otelaws.AppendMiddlewares(&awsCfg.APIOptions)
 
 	client := dynamodb.NewFromConfig(awsCfg, func(o *dynamodb.Options) {
 		if cfg.Endpoint != "" {

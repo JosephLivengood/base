@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/lmittmann/tint"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	"base/api/config"
 	"base/api/internal/database"
@@ -61,6 +62,15 @@ func run(logger *slog.Logger) error {
 	)
 
 	debug := cfg.Environment == "development"
+
+	// Initialize OpenTelemetry (before database connections)
+	otel, err := observability.InitOTel(logger)
+	if err != nil {
+		return fmt.Errorf("failed to initialize OpenTelemetry: %w", err)
+	}
+	if otel != nil {
+		defer otel.Shutdown()
+	}
 
 	// Initialize metrics client (no-op in development, CloudWatch in production)
 	metrics := observability.NewMetrics(logger, cfg.Environment)
@@ -116,10 +126,10 @@ func run(logger *slog.Logger) error {
 		Environment: cfg.Environment,
 	})
 
-	// Create server
+	// Create server with OTel HTTP handler wrapper
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
-		Handler:      r,
+		Handler:      otelhttp.NewHandler(r, "base2-api"),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,

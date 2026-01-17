@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import HyperDX from '@hyperdx/browser'
 import { User } from '../types/user'
 
 interface AuthContextValue {
@@ -19,6 +20,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await fetch('/auth/me')
       const data = await res.json()
       setUser(data.data)
+
+      // Set user context in HyperDX for session attribution
+      if (data.data) {
+        HyperDX.setGlobalAttributes({
+          userId: data.data.id,
+          userEmail: data.data.email,
+        })
+      }
     } catch {
       setUser(null)
     } finally {

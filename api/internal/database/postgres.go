@@ -6,27 +6,15 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/exaring/otelpgx"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
-	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/jmoiron/sqlx"
 )
 
 type PostgresDB struct {
 	*sqlx.DB
 	pool *pgxpool.Pool
-}
-
-type slogAdapter struct {
-	logger *slog.Logger
-}
-
-func (a *slogAdapter) Log(ctx context.Context, level tracelog.LogLevel, msg string, data map[string]any) {
-	attrs := make([]slog.Attr, 0, len(data))
-	for k, v := range data {
-		attrs = append(attrs, slog.Any(k, v))
-	}
-	a.logger.LogAttrs(ctx, slog.LevelDebug, msg, attrs...)
 }
 
 func NewPostgres(dsn string, logger *slog.Logger, debug bool) (*PostgresDB, error) {
@@ -40,13 +28,12 @@ func NewPostgres(dsn string, logger *slog.Logger, debug bool) (*PostgresDB, erro
 	cfg.MinConns = 5
 	cfg.MaxConnLifetime = 5 * time.Minute
 
-	// Add query tracing in debug mode
-	if debug && logger != nil {
-		cfg.ConnConfig.Tracer = &tracelog.TraceLog{
-			Logger:   &slogAdapter{logger: logger.With("db", "postgres")},
-			LogLevel: tracelog.LogLevelDebug,
-		}
-	}
+	// Add OpenTelemetry tracing (uses global tracer provider)
+	cfg.ConnConfig.Tracer = otelpgx.NewTracer()
+
+	// Suppress unused parameter warnings (debug logging handled by OTel)
+	_ = debug
+	_ = logger
 
 	pool, err := pgxpool.NewWithConfig(context.Background(), cfg)
 	if err != nil {

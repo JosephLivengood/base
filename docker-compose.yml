@@ -1,4 +1,24 @@
 services:
+  hyperdx:
+    image: docker.hyperdx.io/hyperdx/hyperdx-all-in-one:latest
+    container_name: base-hyperdx
+    restart: unless-stopped
+    ports:
+      - "8090:8080"   # UI (8080 conflicts with API)
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    volumes:
+      - hyperdx_db:/data/db
+      - hyperdx_ch_data:/var/lib/clickhouse
+      - hyperdx_ch_logs:/var/log/clickhouse-server
+    environment:
+      - USAGE_STATS_ENABLED=false
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
   web:
     build:
       context: ./web
@@ -55,12 +75,17 @@ services:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://hyperdx:4318
+      OTEL_SERVICE_NAME: base2-api
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
     depends_on:
       goose:
         condition: service_completed_successfully
       dynamodb:
         condition: service_started
       redis:
+        condition: service_healthy
+      hyperdx:
         condition: service_healthy
 
   postgres:
@@ -111,3 +136,6 @@ volumes:
   postgres_data:
   dynamodb_data:
   redis_data:
+  hyperdx_db:
+  hyperdx_ch_data:
+  hyperdx_ch_logs:

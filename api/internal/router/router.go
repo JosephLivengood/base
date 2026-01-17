@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/riandyrn/otelchi"
 
 	"base/api/internal/database"
 	"base/api/internal/domain/auth"
@@ -48,6 +49,7 @@ func New(deps Dependencies) *chi.Mux {
 
 	// Global middleware
 	r.Use(chimiddleware.RequestID)
+	r.Use(otelchi.Middleware("base2-api", otelchi.WithChiRoutes(r)))
 	r.Use(chimiddleware.RealIP)
 	r.Use(middleware.Recovery(deps.Logger))
 	r.Use(middleware.Logging(deps.Logger))
