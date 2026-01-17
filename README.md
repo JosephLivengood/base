@@ -32,8 +32,11 @@ make tf-apply     # Create DynamoDB tables
 │   │   ├── session/        # Redis session management
 │   │   ├── middleware/     # HTTP middleware (logging, auth, CORS)
 │   │   ├── observability/  # CloudWatch metrics
-│   │   └── router/         # Route mounting
-│   └── pkg/response/       # Shared utilities
+│   │   ├── router/         # Route mounting
+│   │   └── testutil/       # Test fixtures and mocks
+│   └── pkg/
+│       ├── response/       # JSON response helpers
+│       └── validate/       # Request validation
 ├── web/                    # Vite + React + TypeScript + Tailwind
 │   └── src/
 │       ├── components/     # Auth, layout, organization components
@@ -160,6 +163,21 @@ For local testing, checkout confirmation is handled optimistically via the `/con
 2. Add files: `models.go`, `repository.go`, `handler.go`, `routes.go`
 3. Mount in `api/internal/router/router.go`
 
+## Testing
+
+```bash
+make test           # Run all tests with verbose output and race detection
+make test-short     # Run tests without verbose output (faster)
+make test-coverage  # Generate HTML coverage report (api/coverage.html)
+```
+
+**Test Structure:**
+- `api/pkg/*/` - Unit tests for shared utilities (validate, response)
+- `api/internal/session/` - Redis session store tests (uses redismock)
+- `api/internal/middleware/` - Auth middleware tests
+- `api/internal/domain/*/` - Handler tests (models, validation, error responses)
+- `api/internal/testutil/` - Shared test fixtures and mocks
+
 ## Commands
 
 ```bash
@@ -167,6 +185,7 @@ make dev            # Start all services
 make dev-down       # Stop services
 make dev-rebuild    # Rebuild and restart
 make migrate        # Run pending migrations
+make test           # Run tests
 make tf-apply       # Apply Terraform (local)
 make tf-apply-prod  # Apply Terraform (production)
 ```

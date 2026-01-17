@@ -1,4 +1,4 @@
-.PHONY: dev dev-down dev-logs dev-rebuild build clean migrate migrate-down migrate-status migrate-new tf-init tf-plan tf-apply tf-plan-prod tf-apply-prod
+.PHONY: dev dev-down dev-logs dev-rebuild build clean migrate migrate-down migrate-status migrate-new tf-init tf-plan tf-apply tf-plan-prod tf-apply-prod test test-short test-coverage
 
 # Start everything for development
 dev:
@@ -64,3 +64,17 @@ tf-plan-prod:
 # Terraform - Apply (production)
 tf-apply-prod:
 	cd infra && terraform apply -var-file=environments/prod.tfvars
+
+# Run all tests with verbose output and race detection
+test:
+	cd api && go test ./... -v -race -cover
+
+# Run tests without verbose output (faster for CI)
+test-short:
+	cd api && go test ./... -short
+
+# Generate HTML coverage report
+test-coverage:
+	cd api && go test ./... -coverprofile=coverage.out
+	cd api && go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report: api/coverage.html"
