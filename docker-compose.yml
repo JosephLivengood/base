@@ -30,6 +30,9 @@ services:
     volumes:
       - ./web:/app
       - /app/node_modules
+    environment:
+      - VITE_HYPERDX_API_KEY=${HYPERDX_API_KEY:-}
+      - VITE_HYPERDX_ENDPOINT=http://localhost:4318
     depends_on:
       - api
 
@@ -78,6 +81,7 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://hyperdx:4318
       OTEL_SERVICE_NAME: base2-api
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_EXPORTER_OTLP_HEADERS: authorization=${HYPERDX_API_KEY:-}
     depends_on:
       goose:
         condition: service_completed_successfully

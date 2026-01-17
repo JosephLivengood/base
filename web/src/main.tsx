@@ -9,7 +9,7 @@ import { router } from './router'
 
 // Initialize HyperDX for browser observability
 HyperDX.init({
-  apiKey: 'local-dev', // Not validated in self-hosted
+  apiKey: import.meta.env.VITE_HYPERDX_API_KEY || '',
   service: 'base2-web',
   url: import.meta.env.VITE_HYPERDX_ENDPOINT || 'http://localhost:4318',
   tracePropagationTargets: [/localhost/i, /127\.0\.0\.1/i],
