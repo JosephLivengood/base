@@ -1,7 +1,6 @@
 package organization
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"base/api/internal/middleware"
 	"base/api/internal/session"
 	"base/api/pkg/response"
+	"base/api/pkg/validate"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -40,13 +40,8 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req CreateOrgRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.BadRequest(w, "invalid request body")
-		return
-	}
-
-	if req.Name == "" {
-		response.BadRequest(w, "name is required")
+	if err := validate.Request(r, &req); err != nil {
+		response.BadRequest(w, validate.FirstError(err))
 		return
 	}
 
@@ -133,13 +128,8 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req UpdateOrgRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.BadRequest(w, "invalid request body")
-		return
-	}
-
-	if req.Name == "" {
-		response.BadRequest(w, "name is required")
+	if err := validate.Request(r, &req); err != nil {
+		response.BadRequest(w, validate.FirstError(err))
 		return
 	}
 
@@ -236,13 +226,8 @@ func (h *Handler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req UpdateMemberRoleRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.BadRequest(w, "invalid request body")
-		return
-	}
-
-	if !req.Role.IsValid() {
-		response.BadRequest(w, "invalid role")
+	if err := validate.Request(r, &req); err != nil {
+		response.BadRequest(w, validate.FirstError(err))
 		return
 	}
 
@@ -397,13 +382,8 @@ func (h *Handler) TransferOwnership(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req TransferOwnershipRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.BadRequest(w, "invalid request body")
-		return
-	}
-
-	if req.NewOwnerID == "" {
-		response.BadRequest(w, "new_owner_id is required")
+	if err := validate.Request(r, &req); err != nil {
+		response.BadRequest(w, validate.FirstError(err))
 		return
 	}
 
@@ -453,18 +433,8 @@ func (h *Handler) Invite(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req InviteMemberRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.BadRequest(w, "invalid request body")
-		return
-	}
-
-	if req.Email == "" {
-		response.BadRequest(w, "email is required")
-		return
-	}
-
-	if !req.Role.IsValid() || req.Role == RoleOwner {
-		response.BadRequest(w, "invalid role - must be admin or member")
+	if err := validate.Request(r, &req); err != nil {
+		response.BadRequest(w, validate.FirstError(err))
 		return
 	}
 
@@ -700,13 +670,8 @@ func (h *Handler) SetActiveOrg(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req SetActiveOrgRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.BadRequest(w, "invalid request body")
-		return
-	}
-
-	if req.OrganizationID == "" {
-		response.BadRequest(w, "organization_id is required")
+	if err := validate.Request(r, &req); err != nil {
+		response.BadRequest(w, validate.FirstError(err))
 		return
 	}
 

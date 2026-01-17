@@ -11,6 +11,7 @@ import (
 	"base/api/internal/domain/organization"
 	"base/api/internal/middleware"
 	"base/api/pkg/response"
+	"base/api/pkg/validate"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stripe/stripe-go/v81"
@@ -84,8 +85,8 @@ func (h *Handler) CreateCheckout(w http.ResponseWriter, r *http.Request) {
 
 	// Parse request
 	var req CheckoutRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.BadRequest(w, "invalid request body")
+	if err := validate.Request(r, &req); err != nil {
+		response.BadRequest(w, validate.FirstError(err))
 		return
 	}
 
@@ -143,8 +144,8 @@ func (h *Handler) CreatePortalSession(w http.ResponseWriter, r *http.Request) {
 
 	// Parse request
 	var req PortalRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.BadRequest(w, "invalid request body")
+	if err := validate.Request(r, &req); err != nil {
+		response.BadRequest(w, validate.FirstError(err))
 		return
 	}
 
@@ -198,8 +199,8 @@ func (h *Handler) ConfirmCheckout(w http.ResponseWriter, r *http.Request) {
 
 	// Parse request
 	var req ConfirmRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.BadRequest(w, "invalid request body")
+	if err := validate.Request(r, &req); err != nil {
+		response.BadRequest(w, validate.FirstError(err))
 		return
 	}
 

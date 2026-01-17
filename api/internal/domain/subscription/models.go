@@ -36,9 +36,9 @@ type Subscription struct {
 
 // CheckoutRequest is the request body for creating a checkout session
 type CheckoutRequest struct {
-	PriceID    string `json:"price_id"`
-	SuccessURL string `json:"success_url"`
-	CancelURL  string `json:"cancel_url"`
+	PriceID    string `json:"price_id" validate:"required"`
+	SuccessURL string `json:"success_url" validate:"required,url,max=2000"`
+	CancelURL  string `json:"cancel_url" validate:"required,url,max=2000"`
 }
 
 // CheckoutResponse is the response body for creating a checkout session
@@ -48,7 +48,7 @@ type CheckoutResponse struct {
 
 // PortalRequest is the request body for creating a billing portal session
 type PortalRequest struct {
-	ReturnURL string `json:"return_url"`
+	ReturnURL string `json:"return_url" validate:"required,url,max=2000"`
 }
 
 // PortalResponse is the response body for creating a billing portal session
@@ -58,5 +58,5 @@ type PortalResponse struct {
 
 // ConfirmRequest is the request body for confirming a checkout session (dev only)
 type ConfirmRequest struct {
-	SessionID string `json:"session_id"`
+	SessionID string `json:"session_id" validate:"required"`
 }

@@ -11,9 +11,9 @@ type Project struct {
 }
 
 type CreateProjectRequest struct {
-	Name string `json:"name"`
+	Name string `json:"name" validate:"required,min=1,max=100"`
 }
 
 type UpdateProjectRequest struct {
-	Name string `json:"name"`
+	Name string `json:"name" validate:"required,min=1,max=100"`
 }

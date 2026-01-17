@@ -96,26 +96,26 @@ type InvitationWithDetails struct {
 // Request types
 
 type CreateOrgRequest struct {
-	Name string `json:"name"`
+	Name string `json:"name" validate:"required,min=1,max=100"`
 }
 
 type UpdateOrgRequest struct {
-	Name string `json:"name"`
+	Name string `json:"name" validate:"required,min=1,max=100"`
 }
 
 type InviteMemberRequest struct {
-	Email string `json:"email"`
-	Role  Role   `json:"role"`
+	Email string `json:"email" validate:"required,email,max=255"`
+	Role  Role   `json:"role" validate:"required,oneof=admin member"`
 }
 
 type UpdateMemberRoleRequest struct {
-	Role Role `json:"role"`
+	Role Role `json:"role" validate:"required,oneof=owner admin member"`
 }
 
 type TransferOwnershipRequest struct {
-	NewOwnerID string `json:"new_owner_id"`
+	NewOwnerID string `json:"new_owner_id" validate:"required,uuid"`
 }
 
 type SetActiveOrgRequest struct {
-	OrganizationID string `json:"organization_id"`
+	OrganizationID string `json:"organization_id" validate:"required,uuid"`
 }

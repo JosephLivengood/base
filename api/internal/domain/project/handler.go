@@ -1,13 +1,13 @@
 package project
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 
 	"base/api/internal/domain/organization"
 	"base/api/internal/middleware"
 	"base/api/pkg/response"
+	"base/api/pkg/validate"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -40,13 +40,8 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req CreateProjectRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.BadRequest(w, "invalid request body")
-		return
-	}
-
-	if req.Name == "" {
-		response.BadRequest(w, "name is required")
+	if err := validate.Request(r, &req); err != nil {
+		response.BadRequest(w, validate.FirstError(err))
 		return
 	}
 
@@ -156,13 +151,8 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req UpdateProjectRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.BadRequest(w, "invalid request body")
-		return
-	}
-
-	if req.Name == "" {
-		response.BadRequest(w, "name is required")
+	if err := validate.Request(r, &req); err != nil {
+		response.BadRequest(w, validate.FirstError(err))
 		return
 	}
 
